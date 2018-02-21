@@ -4,6 +4,7 @@
 #          Roman Goj <roman.goj@gmail.com>
 #
 # License: BSD (3-clause)
+
 from copy import deepcopy
 
 import numpy as np
@@ -225,7 +226,16 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
 
     # Tikhonov regularization using reg parameter d to control for
     # trade-off between spatial resolution and noise sensitivity
-    Cm_inv, d = _reg_pinv(Cm.copy(), reg)
+    rank_Cm = estimate_rank(Cm, tol='auto', norm=False, return_singular=False,
+                            estimate_cliff=True)
+
+    if rank_Cm < Cm.shape[0]:
+
+        Cm_inv = _eig_inv(Cm.copy(), rank_Cm)
+        d = reg * np.trace(Cm) / len(Cm)
+        # ipdb.set_trace()
+    else:
+        Cm_inv, d = _reg_pinv(Cm.copy(), reg)
 
     if weight_norm is not None:
         # estimate noise level based on covariance matrix, taking the
@@ -233,9 +243,10 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
         noise, _ = linalg.eigh(Cm)
         if rank is not None:
             rank_Cm = rank
-        else:
-            rank_Cm = estimate_rank(Cm, tol='auto', norm=False,
-                                    return_singular=False)
+        #  ipdb.set_trace()
+        # else:
+        #    rank_Cm = estimate_rank(Cm, tol='auto', norm=False,
+        #                            return_singular=False)
         noise = noise[len(noise) - rank_Cm]
 
         # use either noise floor or regularization parameter d

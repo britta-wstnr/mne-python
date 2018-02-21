@@ -447,7 +447,8 @@ class _TempDir(str):
         rmtree(self._path, ignore_errors=True)
 
 
-def estimate_rank(data, tol='auto', return_singular=False, norm=True):
+def estimate_rank(data, tol='auto', return_singular=False, norm=True,
+                  estimate_cliff=True):
     """Estimate the rank of data.
 
     This function will normalize the rows of the data (typically
@@ -470,6 +471,9 @@ def estimate_rank(data, tol='auto', return_singular=False, norm=True):
     norm : bool
         If True, data will be scaled by their estimated row-wise norm.
         Else data are assumed to be scaled. Defaults to True.
+    estimate_cliff : bool
+        If True, the rank will be estimated based on the biggest cliff in the
+        singular value spectrum.
 
     Returns
     -------
@@ -484,6 +488,7 @@ def estimate_rank(data, tol='auto', return_singular=False, norm=True):
         norms = _compute_row_norms(data)
         data /= norms[:, np.newaxis]
     s = linalg.svd(data, compute_uv=False, overwrite_a=True)
+
     if isinstance(tol, string_types):
         if tol != 'auto':
             raise ValueError('tol must be "auto" or float')
@@ -491,6 +496,13 @@ def estimate_rank(data, tol='auto', return_singular=False, norm=True):
         tol = np.max(data.shape) * np.amax(s) * eps
     tol = float(tol)
     rank = np.sum(s > tol)
+
+    if estimate_cliff is True:
+        # only works if data is not full rank
+        if rank < len(data):
+            diff = np.abs(np.diff(np.log(s)))
+            rank = diff.argmax()
+
     if return_singular is True:
         return rank, s
     else:
