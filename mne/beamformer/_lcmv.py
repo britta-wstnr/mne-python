@@ -224,6 +224,7 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
         whitener = None
 
     # estimate rank via common estimation to not miss full rank data
+    # TODO add some real switches here - reg for should still be possible
     rank_Cm = estimate_rank(Cm, tol='auto', norm=False, return_singular=False)
     if rank_Cm != Cm.shape[0]:
         # redo rank estimation to get a proper estimate
