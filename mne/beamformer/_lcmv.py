@@ -4,6 +4,7 @@
 #          Britta Westner <britta.wstnr@gmail.com>
 #
 # License: BSD (3-clause)
+
 from copy import deepcopy
 
 import numpy as np
@@ -156,26 +157,30 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     else:
         whitener = None
 
-    # covariance matrix inversion
-    if eig_inv is True:
-        try:
-            Cm_inv = linalg.inv(Cm)
-        except np.linalg.linalg.LinAlgError:
-            # eig_inv only possible if matrix is rank deficient
-            rank_Cm = estimate_rank(Cm, norm=False, estimate_cliff=True)
-            Cm_inv = _eig_inv(Cm.copy(), rank_Cm)
-            d = None  # no regularization done - needed for noise estimation
+    # Tikhonov regularization using reg parameter d to control for
+    # trade-off between spatial resolution and noise sensitivity
+    rank_Cm = estimate_rank(Cm, tol='auto', norm=False, return_singular=False,
+                            estimate_cliff=True)
+
+    if rank_Cm < Cm.shape[0]:
+
+        Cm_inv = _eig_inv(Cm.copy(), rank_Cm)
+        d = reg * np.trace(Cm) / len(Cm)
+        # ipdb.set_trace()
     else:
-        # Tikhonov regularization using reg parameter d to control for
-        # trade-off between spatial resolution and noise sensitivity
         Cm_inv, d = _reg_pinv(Cm.copy(), reg)
 
     if weight_norm is not None:
         # estimate noise level based on covariance matrix, taking the
         # smallest eigenvalue that is not zero
         noise, _ = linalg.eigh(Cm)
-        rank_Cm = estimate_rank(Cm, tol='auto', norm=False,
-                                return_singular=False)
+
+        if rank is not None:
+            rank_Cm = rank
+        #  ipdb.set_trace()
+        # else:
+        #    rank_Cm = estimate_rank(Cm, tol='auto', norm=False,
+        #                            return_singular=False)
         noise = noise[len(noise) - rank_Cm]
 
         # use either noise floor or regularization parameter d

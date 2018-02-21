@@ -502,6 +502,7 @@ def estimate_rank(data, tol='auto', return_singular=False, norm=True,
         # only works if data is not full rank
         if rank < len(data):
             diff = np.abs(np.diff(np.log(s)))
+            # TODO check this again:
             rank = diff.argmax() + 1
 
     if return_singular is True:
