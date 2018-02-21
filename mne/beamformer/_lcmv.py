@@ -4,7 +4,6 @@
 #          Roman Goj <roman.goj@gmail.com>
 #
 # License: BSD (3-clause)
-
 from copy import deepcopy
 
 import numpy as np
