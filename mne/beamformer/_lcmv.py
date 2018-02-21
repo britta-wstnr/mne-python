@@ -223,17 +223,16 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     else:
         whitener = None
 
-    # Tikhonov regularization using reg parameter d to control for
-    # trade-off between spatial resolution and noise sensitivity
-    rank_Cm = estimate_rank(Cm, tol='auto', norm=False, return_singular=False,
-                            estimate_cliff=True)
-
-    if rank_Cm < Cm.shape[0]:
-
+    # estimate rank via common estimation to not miss full rank data
+    rank_Cm = estimate_rank(Cm, tol='auto', norm=False, return_singular=False)
+    if rank_Cm != Cm.shape[0]:
+        # redo rank estimation to get a proper estimate
+        rank_Cm = estimate_rank(Cm, norm=False, estimate_cliff=True)
         Cm_inv = _eig_inv(Cm.copy(), rank_Cm)
-        d = reg * np.trace(Cm) / len(Cm)
-        # ipdb.set_trace()
+        d = reg * np.trace(Cm) / len(Cm)   # TODO: noise without reg?
     else:
+        # Tikhonov regularization using reg parameter d to control for
+        # trade-off between spatial resolution and noise sensitivity
         Cm_inv, d = _reg_pinv(Cm.copy(), reg)
 
     if weight_norm is not None:
@@ -242,6 +241,7 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
         noise, _ = linalg.eigh(Cm)
         if rank is not None:
             rank_Cm = rank
+        # TODO can go when certain
         #  ipdb.set_trace()
         # else:
         #    rank_Cm = estimate_rank(Cm, tol='auto', norm=False,
