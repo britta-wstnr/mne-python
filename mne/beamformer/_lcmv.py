@@ -4,7 +4,6 @@
 #          Britta Westner <britta.wstnr@gmail.com>
 #
 # License: BSD (3-clause)
-
 from copy import deepcopy
 
 import numpy as np
