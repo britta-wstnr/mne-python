@@ -230,7 +230,7 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
         # redo rank estimation to get a proper estimate
         rank_Cm = estimate_rank(Cm, norm=False, estimate_cliff=True)
         Cm_inv = _eig_inv(Cm.copy(), rank_Cm)
-        d = reg * np.trace(Cm) / len(Cm)   # TODO: noise without reg?
+        d = 0.  # no regularization done TODO: this is a horrible hack?
     else:
         # Tikhonov regularization using reg parameter d to control for
         # trade-off between spatial resolution and noise sensitivity
