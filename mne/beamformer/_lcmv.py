@@ -1,7 +1,7 @@
 """Compute Linearly constrained minimum variance (LCMV) beamformer."""
-
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Roman Goj <roman.goj@gmail.com>
+#          Britta Westner <britta.wstnr@gmail.com>
 #
 # License: BSD (3-clause)
 from copy import deepcopy
@@ -133,7 +133,7 @@ def _check_cov_matrix(data_cov):
 @verbose
 def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
               pick_ori=None, rank=None, weight_norm='unit-noise-gain',
-              reduce_rank=False, verbose=None):
+              reduce_rank=False, eig_inv=False, verbose=None):
     """Compute LCMV spatial filter.
 
     Parameters
@@ -175,6 +175,11 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
         If True, the rank of the leadfield will be reduced by 1 for each
         spatial location. Setting reduce_rank to True is typically necessary
         if you use a single sphere model for MEG.
+    eig_inv : bool
+        If True, compute the pseudoinverse of the covariance matrix by setting
+        the smallest eigenvalues to zero. This does not require regularization.
+        If the covariance matrix is full rank, the connventional matrix
+        inversion will be used instead.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -223,14 +228,16 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     else:
         whitener = None
 
-    # estimate rank via common estimation to not miss full rank data
-    # TODO add some real switches here - reg for should still be possible
-    rank_Cm = estimate_rank(Cm, tol='auto', norm=False, return_singular=False)
-    if rank_Cm != Cm.shape[0]:
-        # redo rank estimation to get a proper estimate
-        rank_Cm = estimate_rank(Cm, norm=False, estimate_cliff=True)
-        Cm_inv = _eig_inv(Cm.copy(), rank_Cm)
-        d = 0.  # no regularization done TODO: this is a horrible hack?
+    # covariance matrix inversion
+    if eig_inv is True:
+        # TODO regularization parameter?
+        try:
+            Cm_inv = linalg.inv(Cm)
+        except np.linalg.linalg.LinAlgError:
+            # eig_inv only possible if matrix is rank deficient
+            rank_Cm = estimate_rank(Cm, norm=False, estimate_cliff=True)
+            Cm_inv = _eig_inv(Cm.copy(), rank_Cm)
+            d = None  # no regularization done - needed for noise estimation
     else:
         # Tikhonov regularization using reg parameter d to control for
         # trade-off between spatial resolution and noise sensitivity
@@ -240,9 +247,12 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
         # estimate noise level based on covariance matrix, taking the
         # smallest eigenvalue that is not zero
         noise, _ = linalg.eigh(Cm)
+        # TODO rank?! is not used anywhere, can go?
         if rank is not None:
             rank_Cm = rank
-
+        else:
+            rank_Cm = estimate_rank(Cm, tol='auto', norm=False,
+                                    return_singular=False)
         noise = noise[len(noise) - rank_Cm]
 
         # use either noise floor or regularization parameter d
@@ -728,7 +738,7 @@ def lcmv(evoked, forward, noise_cov=None, data_cov=None, reg=0.05, label=None,
     filters = make_lcmv(info=evoked.info, forward=forward, data_cov=data_cov,
                         reg=reg, noise_cov=noise_cov, label=label,
                         pick_ori=pick_ori, rank=rank, weight_norm=weight_norm,
-                        reduce_rank=reduce_rank)
+                        reduce_rank=reduce_rank, eig_inv=False)
 
     # apply spatial filter to evoked data
     stc = apply_lcmv(evoked=evoked, filters=filters, max_ori_out=max_ori_out)
@@ -827,7 +837,7 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.05, label=None,
     filters = make_lcmv(info=epochs.info, forward=forward, data_cov=data_cov,
                         reg=reg, noise_cov=noise_cov, label=label,
                         pick_ori=pick_ori, rank=rank, weight_norm=weight_norm,
-                        reduce_rank=reduce_rank)
+                        reduce_rank=reduce_rank, eig_inv=False)
 
     # apply spatial filter to epochs
     stcs = apply_lcmv_epochs(epochs=epochs, filters=filters,
@@ -927,7 +937,7 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.05, label=None,
     filters = make_lcmv(info=raw.info, forward=forward, data_cov=data_cov,
                         reg=reg, noise_cov=noise_cov, label=label,
                         pick_ori=pick_ori, rank=rank, weight_norm=weight_norm,
-                        reduce_rank=reduce_rank)
+                        reduce_rank=reduce_rank, eig_inv=False)
 
     # apply spatial filter to epochs
     stc = apply_lcmv_raw(raw=raw, filters=filters, start=start, stop=stop,
