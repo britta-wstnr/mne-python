@@ -242,11 +242,7 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
         noise, _ = linalg.eigh(Cm)
         if rank is not None:
             rank_Cm = rank
-        # TODO can go when certain
-        #  ipdb.set_trace()
-        # else:
-        #    rank_Cm = estimate_rank(Cm, tol='auto', norm=False,
-        #                            return_singular=False)
+
         noise = noise[len(noise) - rank_Cm]
 
         # use either noise floor or regularization parameter d
