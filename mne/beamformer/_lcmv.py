@@ -230,7 +230,6 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
 
     # covariance matrix inversion
     if eig_inv is True:
-        # TODO regularization parameter?
         try:
             Cm_inv = linalg.inv(Cm)
         except np.linalg.linalg.LinAlgError:
@@ -247,12 +246,8 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
         # estimate noise level based on covariance matrix, taking the
         # smallest eigenvalue that is not zero
         noise, _ = linalg.eigh(Cm)
-        # TODO rank?! is not used anywhere, can go?
-        if rank is not None:
-            rank_Cm = rank
-        else:
-            rank_Cm = estimate_rank(Cm, tol='auto', norm=False,
-                                    return_singular=False)
+        rank_Cm = estimate_rank(Cm, tol='auto', norm=False,
+                                return_singular=False)
         noise = noise[len(noise) - rank_Cm]
 
         # use either noise floor or regularization parameter d
