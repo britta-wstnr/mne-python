@@ -18,10 +18,13 @@ from ..minimum_norm.inverse import _get_vertno, combine_xyz, _check_reference
 from ..cov import compute_whitener, compute_covariance
 from ..source_estimate import _make_stc, SourceEstimate
 from ..source_space import label_src_vertno_sel
-from ..utils import logger, verbose, warn, estimate_rank
+from ..utils import logger, verbose, warn, estimate_rank, deprecated
 from .. import Epochs
 from ..externals import six
 from ..channels.channels import _contains_ch_type
+
+depr_message = ("This function is deprecated and will be removed in 0.17, "
+                "please use `make_lcmv` and `%s` instead.")
 
 
 def _reg_pinv(x, reg):
@@ -662,6 +665,7 @@ def apply_lcmv_raw(raw, filters, start=None, stop=None, max_ori_out='signed',
     return six.advance_iterator(stc)
 
 
+@deprecated((depr_message % "apply_lcmv"))
 @verbose
 def lcmv(evoked, forward, noise_cov=None, data_cov=None, reg=0.05, label=None,
          pick_ori=None, rank=None, weight_norm='unit-noise-gain',
@@ -757,6 +761,7 @@ def lcmv(evoked, forward, noise_cov=None, data_cov=None, reg=0.05, label=None,
     return stc
 
 
+@deprecated(depr_message % "apply_lcmv_epochs")
 @verbose
 def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.05, label=None,
                 pick_ori=None, return_generator=False, rank=None,
@@ -858,6 +863,7 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.05, label=None,
     return stcs
 
 
+@deprecated(depr_message % "apply_lcmv_raw")
 @verbose
 def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.05, label=None,
              start=None, stop=None, pick_ori=None, rank=None,
