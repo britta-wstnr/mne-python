@@ -87,7 +87,7 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     -------
     filters : dict
         Dictionary containing filter weights from LCMV beamformer.
-g        Contains the following keys:
+        Contains the following keys:
 
             'weights' : {array}
                 The filter weights of the beamformer.
