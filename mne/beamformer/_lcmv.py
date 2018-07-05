@@ -159,15 +159,17 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     # covariance matrix inversion
     if eig_inv is True:
         # TODO regularization parameter?
-        try:
+        rank_Cm = estimate_rank(Cm, norm=False, estimate_cliff=True)
+        if rank_Cm == Cm.shape[0]:
             Cm_inv = linalg.inv(Cm)
-        except np.linalg.linalg.LinAlgError:
+            d = None
+        else:
             # eig_inv only possible if matrix is rank deficient
-            rank_Cm = estimate_rank(Cm, norm=False, estimate_cliff=True)
             Cm_inv = _eig_inv(Cm.copy(), rank_Cm)
             d = None  # no regularization done - needed for noise estimation
     else:
         Cm_inv, d = _reg_pinv(Cm.copy(), reg)
+
 
     if weight_norm is not None:
         # estimate noise level based on covariance matrix, taking the
